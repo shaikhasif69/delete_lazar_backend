@@ -4,7 +4,7 @@ async function testPriceQuery() {
   try {
     console.log('Testing SOL price query...');
     
-    const response = await axios.post('http://168.231.102.148:3001/api/query', {
+    const response = await axios.post('http://localhost:3001/api/query', {
       query: 'What is the current SOL price?'
     }, {
       headers: {

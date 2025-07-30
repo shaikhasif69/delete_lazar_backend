@@ -68,11 +68,37 @@ export class OpenAIService {
     } catch (error) {
       console.error('Error parsing query with OpenAI:', error);
       // Fallback parsing
+      const lowerQuery = query.toLowerCase();
+      
+      // Check for price queries first
+      const isPriceQuery = lowerQuery.includes('price') || 
+                          lowerQuery.includes('current') || 
+                          lowerQuery.includes('worth') || 
+                          lowerQuery.includes('trading') ||
+                          lowerQuery.includes('cost') ||
+                          lowerQuery.includes('value') ||
+                          /what is (sol|btc|eth|bitcoin|ethereum|solana)/i.test(query);
+      
+      if (isPriceQuery) {
+        // Extract crypto symbols from the query
+        const cryptoSymbols = [];
+        if (/sol|solana/i.test(query)) cryptoSymbols.push('SOL');
+        if (/btc|bitcoin/i.test(query)) cryptoSymbols.push('BTC');
+        if (/eth|ethereum/i.test(query)) cryptoSymbols.push('ETH');
+        
+        return {
+          platform: 'price',
+          metric: 'price',
+          timeframe: 1,
+          cryptoSymbols: cryptoSymbols.length > 0 ? cryptoSymbols : ['SOL'] // default to SOL
+        };
+      }
+      
       return {
-        platform: query.toLowerCase().includes('pumpfun') ? 'pumpfun' : query.toLowerCase().includes('bonk') ? 'bonk' : 'both',
-        metric: query.toLowerCase().includes('mcap') || query.toLowerCase().includes('market cap') ? 'mcap' : 'count',
-        timeframe: query.toLowerCase().includes('hour') ? 1 : 24,
-        comparison: query.toLowerCase().includes('vs') || query.toLowerCase().includes('compare')
+        platform: lowerQuery.includes('pumpfun') ? 'pumpfun' : lowerQuery.includes('bonk') ? 'bonk' : 'both',
+        metric: lowerQuery.includes('mcap') || lowerQuery.includes('market cap') ? 'mcap' : 'count',
+        timeframe: lowerQuery.includes('hour') ? 1 : 24,
+        comparison: lowerQuery.includes('vs') || lowerQuery.includes('compare')
       };
     }
   }
