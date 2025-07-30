@@ -22,13 +22,17 @@ export class OpenAIService {
     Parse this crypto query and extract the following information:
     Query: "${query}"
     
+    IMPORTANT: If the query asks about prices, current prices, price of any cryptocurrency (SOL, BTC, ETH, etc.), or "what is X trading at", ALWAYS use platform: "price"
+    
     Return a JSON object with:
-    - platform: "pumpfun", "bonk", "both", or "price" (use "price" for price queries)
+    - platform: "pumpfun", "bonk", "both", or "price" (use "price" for ANY price-related queries)
     - metric: "mcap", "volume", "count", "comparison", or "price"
     - threshold: number (if mentioned, like 100000 for 100k, 19000 for 19k)
     - timeframe: number of hours (default 24 if not specified, 1 for "last hour")
     - comparison: true if comparing platforms
     - cryptoSymbols: array of crypto symbols if asking for prices (e.g., ["SOL", "BTC", "ETH"])
+    
+    Price Query Keywords: "price", "current", "trading at", "worth", "value", "cost", "what is SOL", "BTC price", "ETH price"
     
     Examples:
     "How many tokens reached over $19,000 mcap on pumpfun?" 
@@ -37,8 +41,14 @@ export class OpenAIService {
     "What's the SOL price right now?" 
     -> {"platform": "price", "metric": "price", "timeframe": 1, "cryptoSymbols": ["SOL"]}
     
+    "What is the current SOL price?"
+    -> {"platform": "price", "metric": "price", "timeframe": 1, "cryptoSymbols": ["SOL"]}
+    
     "Show me BTC and ETH prices"
     -> {"platform": "price", "metric": "price", "timeframe": 1, "cryptoSymbols": ["BTC", "ETH"]}
+    
+    "How much is Bitcoin worth?"
+    -> {"platform": "price", "metric": "price", "timeframe": 1, "cryptoSymbols": ["BTC"]}
     `;
 
     try {
@@ -67,18 +77,34 @@ export class OpenAIService {
     }
   }
 
-  async formatResponse(query: string, data: TokenData[], processingTime: number): Promise<string> {
+  async formatResponse(query: string, data: any[], processingTime: number): Promise<string> {
+    // Check if this is price data or token data
+    const isTokenData = data.length > 0 && data[0].hasOwnProperty('currentMcap');
+    const isPriceData = data.length > 0 && data[0].hasOwnProperty('price');
+
+    let dataDescription = '';
+    if (isPriceData) {
+      dataDescription = `Price Data:
+${data.map(item => 
+  `- ${item.name} (${item.symbol}): $${item.price.toLocaleString()} (${item.change24hPercent > 0 ? '+' : ''}${item.change24hPercent.toFixed(2)}% 24h)`
+).join('\n')}`;
+    } else if (isTokenData) {
+      dataDescription = `Token Data Summary:
+${data.slice(0, 5).map(token => 
+  `- ${token.name} (${token.symbol}): $${token.currentMcap.toLocaleString()} mcap, launched ${token.launchTime.toLocaleString()}`
+).join('\n')}`;
+    } else {
+      dataDescription = `Data: ${data.length} items found`;
+    }
+
     const prompt = `
     Format a natural language response for this crypto query based on the data provided.
     
     Original Query: "${query}"
     Processing Time: ${processingTime}ms
-    Data Count: ${data.length} tokens
+    Data Count: ${data.length} ${isPriceData ? 'prices' : 'tokens'}
     
-    Token Data Summary:
-    ${data.slice(0, 5).map(token => 
-      `- ${token.name} (${token.symbol}): $${token.currentMcap.toLocaleString()} mcap, launched ${token.launchTime.toLocaleString()}`
-    ).join('\n')}
+    ${dataDescription}
     
     Provide a clear, concise answer that directly addresses the user's question. Include relevant numbers and context.
     If there are many results, summarize them. Keep the response under 200 words.
