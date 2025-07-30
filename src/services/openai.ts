@@ -11,29 +11,34 @@ export class OpenAIService {
   }
 
   async parseQuery(query: string): Promise<{
-    platform: 'pumpfun' | 'bonk' | 'both';
-    metric: 'mcap' | 'volume' | 'count' | 'comparison';
+    platform: 'pumpfun' | 'bonk' | 'both' | 'price';
+    metric: 'mcap' | 'volume' | 'count' | 'comparison' | 'price';
     threshold?: number;
     timeframe: number; // hours
     comparison?: boolean;
+    cryptoSymbols?: string[];
   }> {
     const prompt = `
     Parse this crypto query and extract the following information:
     Query: "${query}"
     
     Return a JSON object with:
-    - platform: "pumpfun", "bonk", or "both"
-    - metric: "mcap", "volume", "count", or "comparison"
+    - platform: "pumpfun", "bonk", "both", or "price" (use "price" for price queries)
+    - metric: "mcap", "volume", "count", "comparison", or "price"
     - threshold: number (if mentioned, like 100000 for 100k, 19000 for 19k)
     - timeframe: number of hours (default 24 if not specified, 1 for "last hour")
     - comparison: true if comparing platforms
+    - cryptoSymbols: array of crypto symbols if asking for prices (e.g., ["SOL", "BTC", "ETH"])
     
     Examples:
     "How many tokens reached over $19,000 mcap on pumpfun?" 
     -> {"platform": "pumpfun", "metric": "mcap", "threshold": 19000, "timeframe": 24, "comparison": false}
     
-    "Volume pumpfun vs bonk in the last 1 hour"
-    -> {"platform": "both", "metric": "volume", "timeframe": 1, "comparison": true}
+    "What's the SOL price right now?" 
+    -> {"platform": "price", "metric": "price", "timeframe": 1, "cryptoSymbols": ["SOL"]}
+    
+    "Show me BTC and ETH prices"
+    -> {"platform": "price", "metric": "price", "timeframe": 1, "cryptoSymbols": ["BTC", "ETH"]}
     `;
 
     try {

@@ -1,6 +1,7 @@
 import express from 'express';
 import { PumpFunService } from '../services/pumpfun';
 import { OpenAIService } from '../services/openai';
+import { PriceDataService } from '../services/priceData';
 import { QueryResult } from '../types';
 
 const router = express.Router();
@@ -17,6 +18,7 @@ router.post('/query', async (req, res) => {
 
     const pumpFunService = new PumpFunService(process.env.PUMP_FUN_API_KEY!);
     const openAIService = new OpenAIService(process.env.OPENAI_API_KEY!);
+    const priceDataService = new PriceDataService();
 
     // Parse the query using OpenAI
     const parsedQuery = await openAIService.parseQuery(query);
@@ -24,7 +26,13 @@ router.post('/query', async (req, res) => {
     let data: any[] = [];
     
     // Handle different query types
-    if (parsedQuery.platform === 'pumpfun' || parsedQuery.platform === 'both') {
+    if (parsedQuery.platform === 'price' && parsedQuery.cryptoSymbols) {
+      // Handle price queries
+      console.log('💰 Processing price query for:', parsedQuery.cryptoSymbols);
+      const priceData = await priceDataService.getPrices(parsedQuery.cryptoSymbols);
+      data = priceData;
+    } else if (parsedQuery.platform === 'pumpfun' || parsedQuery.platform === 'both') {
+      // Handle pump.fun queries
       if (parsedQuery.metric === 'mcap' && parsedQuery.threshold) {
         data = await pumpFunService.getTokensAboveMarketCap(parsedQuery.threshold, parsedQuery.timeframe);
       } else {
