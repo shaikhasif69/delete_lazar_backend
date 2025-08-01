@@ -2,7 +2,7 @@ export interface TokenData {
   id: string;
   name: string;
   symbol: string;
-  platform: 'pumpfun' | 'bonk';
+  platform: 'pumpfun' | 'bonk' | 'defi' | 'general';
   launchTime: Date;
   currentMcap: number;
   volume24h: number;
@@ -10,14 +10,37 @@ export interface TokenData {
   holders: number;
   creator?: string;
   description?: string;
+  category?: string;
+  rank?: number;
+  percentChange24h?: number;
+  totalSupply?: number;
 }
 
 export interface QueryResult {
   query: string;
   answer: string;
-  data: TokenData[];
+  data: any[]; // Can be TokenData[], DeFiProtocol[], CryptoMarketData[], etc.
+  metadata?: {
+    dataType: 'tokens' | 'protocols' | 'yields' | 'prices' | 'news' | 'trending' | 'sentiment';
+    sources: string[];
+    totalResults: number;
+  };
   timestamp: Date;
   processingTime: number;
+}
+
+export interface EnhancedQueryContext {
+  platform: 'pumpfun' | 'bonk' | 'both' | 'defi' | 'general' | 'price' | 'news' | 'trending';
+  metric: 'mcap' | 'volume' | 'count' | 'comparison' | 'price' | 'tvl' | 'apy' | 'sentiment' | 'news';
+  threshold?: number;
+  timeframe: number; // hours
+  comparison?: boolean;
+  cryptoSymbols?: string[];
+  chain?: string;
+  category?: string;
+  includeNews?: boolean;
+  includeSentiment?: boolean;
+  includeTrending?: boolean;
 }
 
 export interface PumpFunToken {
